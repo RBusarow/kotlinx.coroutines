@@ -128,7 +128,7 @@ private class ChannelAsFlow<T>(
             check(!consumed.getAndSet(true)) { "ReceiveChannel.consumeAsFlow can be collected just once" }
         }
     }
-    
+
     override fun create(context: CoroutineContext, capacity: Int): ChannelFlow<T> =
         ChannelAsFlow(channel, consume, context, capacity)
 
@@ -171,7 +171,21 @@ private class ChannelAsFlow<T>(
  */
 @FlowPreview
 public fun <T> BroadcastChannel<T>.asFlow(): Flow<T> = flow {
-    emitAll(openSubscription())
+    println(1)
+    openSubscription().consumeAsFlow().collect { emit(it) }
+}.also { println(2) }
+
+class BroadcastFlow<T>(
+    private val startAction: suspend FlowCollector<T>.() -> Unit = {}
+) : Flow<T> {
+
+    fun update(
+        startAction: suspend FlowCollector<T>.() -> Unit
+    ): BroadcastFlow<T> = BroadcastFlow(startAction)
+
+    override suspend fun collect(collector: FlowCollector<T>) {
+        TODO("not implemented")
+    }
 }
 
 /**

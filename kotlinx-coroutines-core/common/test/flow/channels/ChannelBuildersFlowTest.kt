@@ -160,6 +160,27 @@ class ChannelBuildersFlowTest : TestBase() {
     }
 
     @Test
+    fun testBroadcastChannelAsFlowOnStart() = runTest {
+
+        expect(1)
+        val channel = broadcast {
+            expect(3)
+            send(2)
+        }
+
+        val list = channel.asFlow()
+            .onStart {
+                println("in the test")
+                expect(2)
+                channel.send(1)
+            }.toList()
+
+        finish(4)
+
+        assertEquals(listOf(1, 2), list)
+    }
+
+    @Test
     fun testBroadcastChannelAsFlowLimits() = runTest {
         val channel = BroadcastChannel<Int>(1)
         val flow = channel.asFlow().map { it * it }.drop(1).take(2)
