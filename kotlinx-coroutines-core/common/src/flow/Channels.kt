@@ -13,7 +13,6 @@ import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.flow.internal.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
-import kotlinx.coroutines.flow.internal.unsafeFlow as flow
 
 /**
  * Emits all elements from the given [channel] to this flow collector and [cancels][cancel] (consumes)
@@ -170,21 +169,24 @@ private class ChannelAsFlow<T>(
  * 3) If the flow consumer fails with an exception, subscription is cancelled.
  */
 @FlowPreview
-public fun <T> BroadcastChannel<T>.asFlow(): Flow<T> = flow {
-    println(1)
-    openSubscription().consumeAsFlow().collect { emit(it) }
-}.also { println(2) }
+public fun <T> BroadcastChannel<T>.asFlow(): Flow<T> = BroadcastFlow(this)
 
-class BroadcastFlow<T>(
-    private val startAction: suspend FlowCollector<T>.() -> Unit = {}
+internal class BroadcastFlow<T>(
+    private val channel: BroadcastChannel<T>,
+    private val _startAction: suspend FlowCollector<T>.() -> Unit = {}
 ) : Flow<T> {
 
     fun update(
         startAction: suspend FlowCollector<T>.() -> Unit
-    ): BroadcastFlow<T> = BroadcastFlow(startAction)
+    ): BroadcastFlow<T> = BroadcastFlow(channel) {
+        startAction()
+        _startAction()
+    }
 
     override suspend fun collect(collector: FlowCollector<T>) {
-        TODO("not implemented")
+        val channel = channel.openSubscription()
+        collector._startAction()
+        collector.emitAll(channel)
     }
 }
 

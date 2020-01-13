@@ -37,7 +37,8 @@ import kotlin.jvm.*
 @ExperimentalCoroutinesApi
 public inline fun <T, R> Flow<T>.transform(
     @BuilderInference crossinline transform: suspend FlowCollector<R>.(value: T) -> Unit
-): Flow<R> = flow { // Note: safe flow is used here, because collector is exposed to transform on each operation
+): Flow<R> = flow {
+    // Note: safe flow is used here, because collector is exposed to transform on each operation
     collect { value ->
         // kludge, without it Unit will be returned and TCE won't kick in, KT-28938
         return@collect transform(value)
@@ -48,7 +49,8 @@ public inline fun <T, R> Flow<T>.transform(
 @PublishedApi
 internal inline fun <T, R> Flow<T>.unsafeTransform(
     @BuilderInference crossinline transform: suspend FlowCollector<R>.(value: T) -> Unit
-): Flow<R> = unsafeFlow { // Note: unsafe flow is used here, because unsafeTransform is only for internal use
+): Flow<R> = unsafeFlow {
+    // Note: unsafe flow is used here, because unsafeTransform is only for internal use
     collect { value ->
         // kludge, without it Unit will be returned and TCE won't kick in, KT-28938
         return@collect transform(value)
@@ -70,9 +72,22 @@ internal inline fun <T, R> Flow<T>.unsafeTransform(
 @ExperimentalCoroutinesApi // tentatively stable in 1.3.0
 public fun <T> Flow<T>.onStart(
     action: suspend FlowCollector<T>.() -> Unit
-): Flow<T> = unsafeFlow { // Note: unsafe flow is used here, but safe collector is used to invoke start action
+): Flow<T> = unsafeFlow {
+    // Note: unsafe flow is used here, but safe collector is used to invoke start action
     SafeCollector<T>(this, coroutineContext).action()
     collect(this) // directly delegate
+}
+
+@ExperimentalCoroutinesApi // tentatively stable in 1.3.0
+public fun <T> Flow<T>.onStart2(
+    action: suspend FlowCollector<T>.() -> Unit
+): Flow<T> = if (this is BroadcastFlow) {
+    update(action)
+} else {
+    unsafeFlow {
+        SafeCollector<T>(this, coroutineContext).action()
+        collect(this) // directly delegate
+    }
 }
 
 /**
@@ -127,7 +142,8 @@ public fun <T> Flow<T>.onStart(
 @ExperimentalCoroutinesApi // tentatively stable in 1.3.0
 public fun <T> Flow<T>.onCompletion(
     action: suspend FlowCollector<T>.(cause: Throwable?) -> Unit
-): Flow<T> = unsafeFlow { // Note: unsafe flow is used here, but safe collector is used to invoke completion action
+): Flow<T> = unsafeFlow {
+    // Note: unsafe flow is used here, but safe collector is used to invoke completion action
     val exception = try {
         catchImpl(this)
     } catch (e: Throwable) {

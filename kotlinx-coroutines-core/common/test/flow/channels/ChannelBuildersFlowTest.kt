@@ -12,9 +12,9 @@ class ChannelBuildersFlowTest : TestBase() {
     @Test
     fun testChannelConsumeAsFlow() = runTest {
         val channel = produce {
-           repeat(10) {
-               send(it + 1)
-           }
+            repeat(10) {
+                send(it + 1)
+            }
         }
         val flow = channel.consumeAsFlow()
         assertEquals(55, flow.sum())
@@ -24,9 +24,9 @@ class ChannelBuildersFlowTest : TestBase() {
     @Test
     fun testChannelReceiveAsFlow() = runTest {
         val channel = produce {
-           repeat(10) {
-               send(it + 1)
-           }
+            repeat(10) {
+                send(it + 1)
+            }
         }
         val flow = channel.receiveAsFlow()
         assertEquals(55, flow.sum())
@@ -35,7 +35,8 @@ class ChannelBuildersFlowTest : TestBase() {
 
     @Test
     fun testConsumeAsFlowCancellation() = runTest {
-        val channel = produce(NonCancellable) { // otherwise failure will cancel scope as well
+        val channel = produce(NonCancellable) {
+            // otherwise failure will cancel scope as well
             repeat(10) {
                 send(it + 1)
             }
@@ -50,7 +51,8 @@ class ChannelBuildersFlowTest : TestBase() {
 
     @Test
     fun testReceiveAsFlowCancellation() = runTest {
-        val channel = produce(NonCancellable) { // otherwise failure will cancel scope as well
+        val channel = produce(NonCancellable) {
+            // otherwise failure will cancel scope as well
             repeat(10) {
                 send(it + 1)
             }
@@ -64,7 +66,8 @@ class ChannelBuildersFlowTest : TestBase() {
 
     @Test
     fun testConsumeAsFlowException() = runTest {
-        val channel = produce(NonCancellable) { // otherwise failure will cancel scope as well
+        val channel = produce(NonCancellable) {
+            // otherwise failure will cancel scope as well
             repeat(10) {
                 send(it + 1)
             }
@@ -77,7 +80,8 @@ class ChannelBuildersFlowTest : TestBase() {
 
     @Test
     fun testReceiveAsFlowException() = runTest {
-        val channel = produce(NonCancellable) { // otherwise failure will cancel scope as well
+        val channel = produce(NonCancellable) {
+            // otherwise failure will cancel scope as well
             repeat(10) {
                 send(it + 1)
             }
@@ -130,9 +134,9 @@ class ChannelBuildersFlowTest : TestBase() {
     @Test
     fun testBroadcastChannelAsFlow() = runTest {
         val channel = broadcast {
-           repeat(10) {
-               send(it + 1)
-           }
+            repeat(10) {
+                send(it + 1)
+            }
         }
 
         val sum = channel.asFlow().sum()
@@ -142,7 +146,8 @@ class ChannelBuildersFlowTest : TestBase() {
     @Test
     fun testExceptionInBroadcast() = runTest {
         expect(1)
-        val channel = broadcast(NonCancellable) { // otherwise failure will cancel scope as well
+        val channel = broadcast(NonCancellable) {
+            // otherwise failure will cancel scope as well
             repeat(10) {
                 send(it + 1)
             }
@@ -285,5 +290,21 @@ class ChannelBuildersFlowTest : TestBase() {
         channel.openSubscription().consumeEach {
             fail()
         }
+    }
+
+    @Test
+    fun onStartTwice_doesSomething() = runTest {
+        val channel = broadcast {
+            send(1)
+        }
+
+        channel.asFlow()
+            .onStart2 { println("start 1") }
+            .onStart2 {
+                println("start 2")
+                channel.send(-1)
+                emit(0)
+            }
+            .collect { println("collected $it") }
     }
 }
