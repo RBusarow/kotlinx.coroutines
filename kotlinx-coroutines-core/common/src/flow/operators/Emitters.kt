@@ -72,19 +72,11 @@ internal inline fun <T, R> Flow<T>.unsafeTransform(
 @ExperimentalCoroutinesApi // tentatively stable in 1.3.0
 public fun <T> Flow<T>.onStart(
     action: suspend FlowCollector<T>.() -> Unit
-): Flow<T> = unsafeFlow {
-    // Note: unsafe flow is used here, but safe collector is used to invoke start action
-    SafeCollector<T>(this, coroutineContext).action()
-    collect(this) // directly delegate
-}
-
-@ExperimentalCoroutinesApi // tentatively stable in 1.3.0
-public fun <T> Flow<T>.onStart2(
-    action: suspend FlowCollector<T>.() -> Unit
 ): Flow<T> = if (this is BroadcastFlow) {
     update(action)
 } else {
     unsafeFlow {
+        // Note: unsafe flow is used here, but safe collector is used to invoke start action
         SafeCollector<T>(this, coroutineContext).action()
         collect(this) // directly delegate
     }

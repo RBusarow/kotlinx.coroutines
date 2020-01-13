@@ -171,25 +171,6 @@ private class ChannelAsFlow<T>(
 @FlowPreview
 public fun <T> BroadcastChannel<T>.asFlow(): Flow<T> = BroadcastFlow(this)
 
-internal class BroadcastFlow<T>(
-    private val channel: BroadcastChannel<T>,
-    private val _startAction: suspend FlowCollector<T>.() -> Unit = {}
-) : Flow<T> {
-
-    fun update(
-        startAction: suspend FlowCollector<T>.() -> Unit
-    ): BroadcastFlow<T> = BroadcastFlow(channel) {
-        startAction()
-        _startAction()
-    }
-
-    override suspend fun collect(collector: FlowCollector<T>) {
-        val channel = channel.openSubscription()
-        collector._startAction()
-        collector.emitAll(channel)
-    }
-}
-
 /**
  * Creates a [broadcast] coroutine that collects the given flow.
  *

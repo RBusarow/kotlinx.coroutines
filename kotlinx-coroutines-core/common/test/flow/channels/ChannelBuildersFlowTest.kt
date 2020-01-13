@@ -293,18 +293,26 @@ class ChannelBuildersFlowTest : TestBase() {
     }
 
     @Test
-    fun onStartTwice_doesSomething() = runTest {
-        val channel = broadcast {
-            send(1)
+    fun testBroadcastAsFlowOnStart() = runTest {
+        val channel = broadcast(capacity = 2) {
+            expect(4)
+            send("c")
         }
 
-        channel.asFlow()
-            .onStart2 { println("start 1") }
-            .onStart2 {
-                println("start 2")
-                channel.send(-1)
-                emit(0)
+        expect(1)
+
+        val result = channel.asFlow()
+            .onStart {
+                expect(3)
+                channel.send("b")
             }
-            .collect { println("collected $it") }
+            .onStart {
+                expect(2)
+                channel.send("a")
+            }
+            .toList()
+
+        assertEquals(listOf("a", "b", "c"), result)
+        finish(5)
     }
 }
